@@ -8,6 +8,9 @@ import olefile as OleFile
 from dateutil import parser
 
 
+
+
+
 # This property information was sourced from
 # http://www.fileformat.info/format/outlookmsg/index.htm
 # on 2013-07-22.
@@ -257,6 +260,11 @@ class Message(OleFile.OleFileIO):
             return result
 
     @property
+    def _from(self):
+        return self._getStringStream('__substg1.0_0042')
+
+
+    @property
     def to(self):
         try:
             return self._to
@@ -471,15 +479,89 @@ class Message(OleFile.OleFileIO):
         for attachment in self.attachments:
             attachment.save()
 
+
 class MessageProper(Message):
 
     def getdate(self):
         return parser.parse(self.date).date()
 
     def gettime(self):
-        return parser.parse(self.date).time()
+        time = f"{parser.parse(self.date).time().hour}-" \
+               f"{parser.parse(self.date).time().minute}-" \
+               f"{parser.parse(self.date).time().second}"
+        return time
+
+    def replace_char(self, string, newchar, *args):
+        chars_list = (args)
+        for char in chars_list:
+            string = string.replace(char, newchar)
+        return string
+
+    def getsender(self):
+        sender = self.replace_char(self._from.title(), "ДХБ",
+                                   "Донхлеббанк").split()
+        if len(sender) == 3:
+            sender = f"{sender[0]}{sender[1][:1]}.{sender[2][:1]}."
+        else:
+            return "_".join(sender)
+        return sender
+
+    def getsubject(self):
+        # set_chars = ("Re: ", "Fw: ", "/", "__", "___")
+        # s = self.subject.title()
+        # for char in set_chars:
+        #     s = s.replace(char,"_")
+        return self.replace_char(self.subject.title(), "_",
+                                 "Re: ",
+                                 "Fw: ",
+                                 "/",
+                                 "__",
+                                 "___")
+
+    def getattcount(self):
+        return len(self.attachments)
+
+    def newname(self):
+        return f"{self.getdate()}_" \
+               f"{self.gettime()}_" \
+               f"{self.getsender()}_" \
+               f"{self.getsubject()}_" \
+               f"{self.getattcount()}attach.msg"
+
+
+class Files:
+    """operate with files in directory
+
+    """
+
+    def __init__(self, path):
+        self.path = path
+
+    def setname(self, name):
+        """sets fullname to the file"""
+
+        return f"{self.path}/{name}"
+
+    def rename(self, old, new):
+        """gets file with old name and rename it with the new full name
+
+        if new fullname describe file in another directory - moves file to
+        another directory and store it with new name
+        """
+        os.rename(old, new)
+
+    def bustfiles(self):
+        """Get each .msg file in directory, parse it and rename
+        User defines directory for rematching
+        """
+        os.chdir(path)
+        for file in glob.glob('*.msg'):
+            message = MessageProper(file)
+            newname = self.setname(message.newname())
+            self.rename(file, newname)
 
 
 if __name__ == "__main__":
-    message = MessageProper("test.msg")
-    print(message.getdate(), message.gettime())
+    path = input("Введи адрес директории: ")
+    fullname = Files(path)
+    fullname.bustfiles()
