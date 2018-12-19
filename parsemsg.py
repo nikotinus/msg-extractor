@@ -1,3 +1,10 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# should be installed via pip several modules:
+# pip install olefile
+# pip install  python-dateutil
+
 import os
 import sys
 import glob
@@ -7,9 +14,15 @@ import email.utils
 import olefile as OleFile
 from dateutil import parser
 
+'''
+Парсер директории в которой содержатся сообщения Outlook
 
-
-
+Спрашивает у пользователя директорию, в которой необходимо
+обработать сообщения. Затем по каждому файлу с раширением .msg
+убирает из названия спец. символы, после чего переименовывает
+файлы, возвращая имя в формате:
+Дата_Время_Отправитель_Тема письма_Количество вложений_attachment.msg
+'''
 
 # This property information was sourced from
 # http://www.fileformat.info/format/outlookmsg/index.htm
@@ -562,6 +575,7 @@ class Files:
 
 
 if __name__ == "__main__":
+
     path = input("Введи адрес директории: ")
     fullname = Files(path)
     fullname.bustfiles()
